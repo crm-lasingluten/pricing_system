@@ -1,13 +1,112 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>pricing_system</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Procesos de la empresa</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,sans-serif}
+body{background:#f5f5f3;min-height:100vh}
+header{background:#fff;border-bottom:1px solid #e5e5e3;padding:1rem 1.5rem;display:flex;align-items:center;justify-content:space-between}
+h1{font-size:18px;font-weight:500;color:#1a1a19}
+.subtitle{font-size:13px;color:#6b6b68;margin-top:2px}
+.layout{display:flex;min-height:calc(100vh - 65px)}
+.sidebar{width:200px;flex-shrink:0;background:#fff;border-right:1px solid #e5e5e3;padding:1rem 0}
+.sidebar-title{font-size:11px;font-weight:500;color:#9c9a92;letter-spacing:.06em;text-transform:uppercase;margin:0 0 8px 16px}
+.dept-item{padding:8px 16px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border-left:2.5px solid transparent}
+.dept-item.active{background:#f5f5f3;border-left-color:#1a1a19}
+.dept-item.active .dept-name{color:#1a1a19;font-weight:500}
+.dept-name{font-size:14px;color:#6b6b68}
+.dept-count{font-size:12px;color:#9c9a92;background:#ececea;border-radius:12px;padding:1px 7px}
+.main{flex:1;padding:1.5rem}
+input[type=text]{width:100%;margin-bottom:1rem;font-size:14px;padding:9px 14px;border-radius:8px;border:1px solid #d3d1c7;background:#fff;color:#1a1a19;outline:none}
+input[type=text]:focus{border-color:#888}
+.process-card{background:#fff;border:1px solid #e5e5e3;border-radius:12px;overflow:hidden;margin-bottom:10px}
+.card-header{padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer}
+.card-header:hover{background:#fafaf9}
+.card-title{font-size:14px;font-weight:500;color:#1a1a19;margin-bottom:4px}
+.card-resp{font-size:13px;color:#6b6b68}
+.badge{font-size:11px;padding:2px 8px;border-radius:12px;font-weight:500;display:inline-block;margin-left:8px}
+.chevron{font-size:18px;color:#9c9a92;transition:transform .2s;margin-left:auto}
+.card-body{border-top:1px solid #e5e5e3;padding:14px 16px;background:#fafaf9;display:none}
+.card-body.open{display:block}
+.card-desc{font-size:14px;color:#6b6b68;line-height:1.6;margin-bottom:0}
+.empty{text-align:center;padding:3rem;color:#9c9a92;font-size:14px}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Procesos de la empresa</h1>
+    <div class="subtitle" id="total-label"></div>
+  </div>
+</header>
+<div class="layout">
+  <div class="sidebar">
+    <p class="sidebar-title">Departamentos</p>
+    <div id="sidebar"></div>
+  </div>
+  <div class="main">
+    <input type="text" id="search" placeholder="Buscar por nombre o responsable..." oninput="render()">
+    <div id="list"></div>
+  </div>
+</div>
+<script>
+const processes = [{"name":"Alta nuevo producto","description":"","responsible":"Fernando","department":"Operaciones","id":1778831053481},{"name":"Alta Fórmula producto","description":"","responsible":"Fernando ","department":"Operaciones","id":1778831211773},{"name":"Alta Materia Prima","description":"","responsible":"Miriam - Marisa","department":"Operaciones","id":1778831286519},{"name":"Orden de compra a Proveedores","description":"","responsible":"Miriam  - Marisa","department":"Operaciones","id":1778831338232},{"name":"Ingreso Albaranes compra Materia Prima","description":"","responsible":"Miriam -  Marisa","department":"Operaciones","id":1778831370388},{"name":"Recepción Materia Prima","description":"","responsible":"Adriana","department":"Operaciones","id":1778831452166},{"name":"Control Stock Materia Prima","description":"","responsible":"Fernando - Rodrigo","department":"Operaciones","id":1778831491797},{"name":"Progamación producciçóm","description":"","responsible":"Fernando","department":"Operaciones","id":1778831740496},{"name":"Supervisión producción","description":"","responsible":"Fernando - Rodrigo","department":"Operaciones","id":1778832100994},{"name":"Contratación personal","description":"","responsible":"Fernando - Rodrigo","department":"RRHH","id":1778832122425},{"name":"Movimiento de inventario Producto terminado","description":"","responsible":"Miriam - Marisa","department":"Operaciones","id":1778832156928},{"name":"Ingreso de facturas Proveedores","description":"","responsible":"Miriam - Loli","department":"Finanzas","id":1778832198226},{"name":"Pago a proveedores","description":"","responsible":"Miriam - Loli","department":"Finanzas","id":1778832212311},{"name":"Recepcion de pedidos Producto terminado","description":"","responsible":"Miriam - Marisa","department":"Ventas","id":1778832252139},{"name":"Albaran de producto terminado a Bauer - TBH o clientes","description":"","responsible":"Miriam - Marisa","department":"Ventas","id":1778832291987},{"name":"Facturación de ventas","description":"","responsible":"Miriam - Loli","department":"Finanzas","id":1778832317157},{"name":"Entrega producto terminado","description":"","responsible":"Adriana","department":"Operaciones","id":1778832369234},{"name":"Redes sociales - Página Web","description":"","responsible":"Marisa","department":"Marketing","id":1778833210266},{"name":"Mantenimiento CRM","description":"","responsible":"Marisa","department":"Tecnología","id":1778833233392}];
+const DEPT_COLORS = {"Ventas":"#185FA5","RRHH":"#0F6E56","Operaciones":"#854F0B","Finanzas":"#3B6D11","Marketing":"#993556","Tecnología":"#534AB7","Legal":"#993C1D","Otro":"#5F5E5A"};
+const DEPTS = ["Todos","Ventas","RRHH","Operaciones","Finanzas","Marketing","Tecnología","Legal","Otro"];
+let activeFilter = "Todos";
+
+function render() {
+  const q = document.getElementById("search").value.toLowerCase();
+  const filtered = processes.filter(p =>
+    (activeFilter === "Todos" || p.department === activeFilter) &&
+    (p.name.toLowerCase().includes(q) || p.responsible.toLowerCase().includes(q))
+  );
+  document.getElementById("total-label").textContent = processes.length + " proceso" + (processes.length !== 1 ? "s" : "") + " registrado" + (processes.length !== 1 ? "s" : "");
+
+  // Sidebar
+  document.getElementById("sidebar").innerHTML = DEPTS.map(d => {
+    const count = d === "Todos" ? processes.length : processes.filter(p => p.department === d).length;
+    return `<div class="dept-item${activeFilter===d?" active":""}" onclick="setFilter('${d}')">
+      <span class="dept-name">${d}</span>
+      <span class="dept-count">${count}</span>
+    </div>`;
+  }).join("");
+
+  // List
+  const list = document.getElementById("list");
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="empty">No hay resultados.</div>';
+    return;
+  }
+  list.innerHTML = filtered.map(p => {
+    const c = DEPT_COLORS[p.department] || "#888";
+    const bg = c + "22";
+    return `<div class="process-card">
+      <div class="card-header" onclick="toggle('${p.id}')">
+        <div style="flex:1">
+          <div class="card-title">${p.name}<span class="badge" style="background:${bg};color:${c}">${p.department}</span></div>
+          <div class="card-resp">👤 ${p.responsible}</div>
+        </div>
+        <span class="chevron" id="chev-${p.id}">⌄</span>
+      </div>
+      <div class="card-body" id="body-${p.id}">
+        <p class="card-desc">${p.description || '<em style="color:#b4b2a9">Sin descripción.</em>'}</p>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function setFilter(d) { activeFilter = d; render(); }
+function toggle(id) {
+  const body = document.getElementById("body-"+id);
+  const chev = document.getElementById("chev-"+id);
+  const open = body.classList.toggle("open");
+  chev.style.transform = open ? "rotate(180deg)" : "rotate(0)";
+}
+
+render();
+</script>
+</body>
 </html>
